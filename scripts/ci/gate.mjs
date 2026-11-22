@@ -18,7 +18,15 @@ function getSteps(job) {
         { name: "format", cmd: "npm", args: ["run", "format:check"] },
       ];
     case "unit":
-      return [{ name: "vitest", cmd: "npm", args: ["run", "test"] }];
+      return [
+        { name: "vitest", cmd: "npm", args: ["run", "test"] },
+        // Test của chính các công cụ CI (vitest chỉ chạy src/**)
+        {
+          name: "test-cong-cu-ci",
+          cmd: "node",
+          args: ["--test", "scripts/ci/quet-cau-moi.test.mjs"],
+        },
+      ];
     case "e2e":
       return [{ name: "playwright", cmd: "npm", args: ["run", "test:e2e"] }];
     case "bao-mat": {
