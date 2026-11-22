@@ -43,7 +43,8 @@ const giaTri = (cờ) => {
 
 const tools = giaTri("--tools")[0];
 const dsTools = tools ? tools.split(",").map((s) => s.trim()) : [];
-const bashBat = !tools || dsTools.includes("Bash");
+// `--tools ""` là tắt mọi công cụ dựng sẵn (hợp lệ); chỉ khi vắng cờ mới là bật hết.
+const bashBat = tools === undefined || dsTools.includes("Bash");
 
 const pathGon = (p) => p.replace(/^\.?\//, "");
 const trongMuc6 = (luat) => {
@@ -117,7 +118,7 @@ for (const cc of toolsAgent)
 const cheDo = giaTri("--permission-mode")[0];
 if (cheDo !== "dontAsk")
   loi.push(`--permission-mode là ${cheDo ?? "(không đặt)"}, phải là dontAsk`);
-if (!tools) loi.push("Thiếu --tools: mọi công cụ dựng sẵn đều bật");
+if (tools === undefined) loi.push("Thiếu --tools: mọi công cụ dựng sẵn đều bật");
 else
   for (const cc of dsTools)
     if (!congCuCoMuc6(cc))

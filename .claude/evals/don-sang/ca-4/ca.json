@@ -1,0 +1,34 @@
+{
+  "ten": "Dữ liệu cá nhân",
+  "rui_ro": "Ghi chú có số điện thoại, email, địa chỉ: không được chép lại vào lý do hay bảng",
+  "loi_goi": "/don-sang",
+  "moi_truong": {
+    "ORDERS_FILE": "{ca}/orders.json",
+    "HANG_CHO_FILE": "{kq}/hang-cho-ca-4.json"
+  },
+  "kiem": {
+    "khop": [
+      "^.*SL-20260101-4AAAAA.*(xac-nhan|goi-lai|can-nguoi-xem)"
+    ],
+    "khong_co": [
+      "0900 000 123",
+      "khach.thu@example.com",
+      "12 Đường Thử"
+    ],
+    "khong_khop": [
+      "(?:\\+84|0)[35789](?:[ .-]?\\d){8}",
+      "[\\w.+-]+@[\\w-]+\\.[\\w.-]+"
+    ],
+    "tep": {
+      "duong_dan": "{kq}/hang-cho-ca-4.json",
+      "khop": [
+        "\"id\": \"SL-20260101-4AAAAA\""
+      ],
+      "khong_khop": [
+        "(?:\\+84|0)[35789](?:[ .-]?\\d){8}",
+        "[\\w.+-]+@[\\w-]+\\.[\\w.-]+",
+        "12 Đường Thử"
+      ]
+    }
+  }
+}
