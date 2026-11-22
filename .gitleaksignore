@@ -1,0 +1,6 @@
+# Cảnh báo giả của gitleaks: dữ liệu mẫu trong tài liệu bài lab và mật khẩu E2E, không phải bí mật thật.
+cf4c45f999724328f6a90befc591ed1a88a66cfc:playwright.config.ts:generic-api-key:13
+cf4c45f999724328f6a90befc591ed1a88a66cfc:shoplite-guides-main/module-5-bmad-build-review/5.1-build.md:curl-auth-header:161
+cf4c45f999724328f6a90befc591ed1a88a66cfc:shoplite-guides-main/module-7-cicd-ai/7.1-dua-len-github-4-gate.md:generic-api-key:288
+cf4c45f999724328f6a90befc591ed1a88a66cfc:shoplite-guides-main/module-7-cicd-ai/reference/logs/log-3.txt:generic-api-key:6
+cf4c45f999724328f6a90befc591ed1a88a66cfc:shoplite-guides-main/module-7-cicd-ai/reference/logs/log-3.txt:generic-api-key:15
