@@ -1,66 +1,128 @@
 name: CI
 
-# Chạy khi có PR vào nhánh main
+# Tên 4 job (lint, unit, e2e, bao-mat) là tên check bắt buộc của main: không đổi.
 on:
   pull_request:
+  push:
     branches: [main]
 
+# Quyền mặc định: chỉ đọc. Không job nào cần quyền ghi.
 permissions:
   contents: read
 
-# Hủy lần chạy cũ của cùng PR khi có commit mới
+# Đẩy commit mới thì hủy lượt chạy cũ của cùng nhánh/PR.
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  GITLEAKS_VERSION: 8.30.1
-
 jobs:
-  # Quét bí mật trong toàn bộ lịch sử git; cảnh báo giả khai báo ở .gitleaksignore
-  gitleaks:
-    name: Quét bí mật (gitleaks)
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout (đủ lịch sử)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-
-      - name: Cài gitleaks
-        run: |
-          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -fsSL -O "${base}/${tarball}"
-          curl -fsSL -O "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " ${tarball}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
-          tar -xzf "${tarball}" gitleaks
-          sudo mv gitleaks /usr/local/bin/gitleaks
-
-      - name: Quét
-        run: gitleaks git --redact --verbose .
-
-  check:
-    name: Lint, typecheck, test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Cài Node
-        uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
+      - run: npm ci
+      - run: node scripts/ci/gate.mjs lint
+      - name: Upload kết quả gate khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-lint
+          path: gate-lint.*
+          if-no-files-found: ignore
+          retention-days: 3
 
-      - name: Cài dependencies
-        run: npm ci
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/ci/gate.mjs unit
+      - name: Upload kết quả gate khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-unit
+          path: gate-unit.*
+          if-no-files-found: ignore
+          retention-days: 3
 
-      # lint + typecheck + test
-      - name: Kiểm tra
-        run: npm run check
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/ci/gate.mjs e2e
+      - name: Upload kết quả gate khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-e2e
+          path: |
+            gate-e2e.*
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 3
 
-      - name: Kiểm tra format
-        run: npm run format:check
+  bao-mat:
+    name: bao-mat
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # quét cả lịch sử
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Cài gitleaks 8.30.1 (kiểm sha256)
+        run: |
+          set -euo pipefail
+          tarball=gitleaks_8.30.1_linux_x64.tar.gz
+          curl -fsSL -o "$tarball" "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/$tarball"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $tarball" | sha256sum -c -
+          tar -xzf "$tarball" gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      # Dữ liệu từ PR đi qua env, không viết ${{ }} vào lệnh.
+      - name: Chạy gate bao-mat
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/ci/gate.mjs bao-mat
+      - name: Upload kết quả gate khi đỏ
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-bao-mat
+          path: gate-bao-mat.*
+          if-no-files-found: ignore
+          retention-days: 3
