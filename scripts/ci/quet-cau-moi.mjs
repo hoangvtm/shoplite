@@ -38,9 +38,38 @@ const MAU_CO_DIEN = [
   /đã (?:được )?duyệt[\s,;.:-]*(?:nên )?không cần (?:review|duyệt|kiểm|xem)/i,
 ];
 // Ký tự không nhìn thấy khi đọc diff nhưng model đọc được: zero-width, đổi chiều chữ, dấu gạch
-// nối mềm, tag characters (U+E0000-E007F), variation selectors mở rộng. Không gồm U+FE00-FE0F
-// vì emoji dùng chúng.
-const KY_TU_AN = /[​-‏‪-‮⁠-⁤⁦-⁩﻿­᠎\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/u;
+// nối mềm, ký tự đệm/lấp chỗ, tag characters, variation selectors mở rộng. Không gồm U+FE00-FE0F
+// vì emoji dùng chúng. Dựng từ mã điểm để mã nguồn này không chứa ký tự vô hình.
+const KHOANG_KY_TU_AN = [
+  [0x00ad, 0x00ad], // dấu gạch nối mềm
+  [0x034f, 0x034f], // combining grapheme joiner
+  [0x061c, 0x061c], // arabic letter mark
+  [0x115f, 0x1160], // hangul filler
+  [0x17b4, 0x17b5], // khmer vowel inherent
+  [0x180b, 0x180e], // mongolian variation selectors, vowel separator
+  [0x200b, 0x200f], // zero-width, đánh dấu chiều chữ
+  [0x202a, 0x202e], // nhúng/đảo chiều chữ
+  [0x2060, 0x206f], // word joiner, ký tự định dạng vô hình
+  [0x2800, 0x2800], // braille trống
+  [0x3164, 0x3164], // hangul filler
+  [0xfeff, 0xfeff], // BOM / zero-width no-break space
+  [0xffa0, 0xffa0], // halfwidth hangul filler
+  [0xe0000, 0xe007f], // tag characters
+  [0xe0100, 0xe01ef], // variation selectors mở rộng
+];
+const KY_TU_AN = new RegExp(
+  `[${KHOANG_KY_TU_AN.map(([tu, den]) => `\\u{${tu.toString(16)}}-\\u{${den.toString(16)}}`).join("")}]`,
+  "u",
+);
+
+// Dòng trailer do công cụ thêm vào (Co-Authored-By: Claude ...) không phải lời viết cho AI; chỉ bỏ
+// khi dòng đó không chứa câu mồi nào, nên giấu câu mồi sau tiền tố trailer vẫn bị bắt.
+const TRAILER = /^\s*(?:Co-Authored-By|Signed-off-by):/i;
+const laTrailerSach = (text) =>
+  TRAILER.test(text) &&
+  !BAO_IM_LANG.test(text) &&
+  !MAU_CO_DIEN.some((mau) => mau.test(text.normalize("NFC"))) &&
+  !KY_TU_AN.test(text);
 
 const args = process.argv.slice(2);
 const lay = (ten) => (args.includes(ten) ? args[args.indexOf(ten) + 1] : undefined);
@@ -55,20 +84,21 @@ if (!base) {
 const phatHien = [];
 const fileChiDan = new Set();
 
-for (const { file, dong } of cacDongThem(base)) {
-  // Tên file cũng là chỗ giấu câu mồi (AI đọc tên file trong diff).
+const dongTheoFile = new Map(cacDongThem(base).map(({ file, dong }) => [file, dong]));
+for (const file of cacTenFile(base)) {
+  // Tên file cũng là chỗ giấu câu mồi (AI đọc tên file trong diff); file đổi tên thuần hoặc file
+  // rỗng không có dòng thêm vào nên phải lấy tên từ danh sách file, không từ tiêu đề `+++`.
   quet(`(tên file) ${file}`, [{ so: 1, text: file.replace(/[-_./]+/g, " ") }]);
   if (FILE_CHI_DAN.some((mau) => mau.test(file))) {
     fileChiDan.add(file);
     continue;
   }
-  quet(file, dong);
+  quet(file, dongTheoFile.get(file) ?? []);
 }
 for (const { ten, noiDung } of cacCommit(base)) {
-  // Dòng trailer (Co-Authored-By: Claude ...) do công cụ thêm vào, không phải lời viết cho AI.
   quet(
     ten,
-    tachDong(noiDung).filter((d) => !/^\s*(?:Co-Authored-By|Signed-off-by):/i.test(d.text)),
+    tachDong(noiDung).filter((d) => !laTrailerSach(d.text)),
   );
 }
 for (const [ten, noiDung] of [
@@ -99,29 +129,46 @@ function tachDong(noiDung) {
   return noiDung.split(/\r?\n/).map((text, i) => ({ so: i + 1, text }));
 }
 
+/** Bỏ dấu mở đầu comment/trích dẫn để câu chia nhiều dòng comment vẫn nối được thành một câu. */
+function boDauComment(text) {
+  return text.replace(/^\s*(?:\/\/+|\/\*+|\*+\/?|#+|--|>+)\s*/, "");
+}
+
+/** Nối các dòng thành một câu để thử mẫu chữ, đã chuẩn hóa NFC. */
+function noiCau(cacDong) {
+  return cacDong
+    .map((item) => boDauComment(item.text))
+    .join(" ")
+    .normalize("NFC");
+}
+
 function quet(file, dong) {
   // Câu mồi hay viết thành comment 2-3 dòng: dòng đầu gọi tên AI, dòng sau mới bảo "không cần báo".
+  // Mọi mẫu chữ đều thử trên cửa sổ 3 dòng, sau khi bỏ dấu comment và chuẩn hóa NFC (chữ tiếng Việt
+  // dạng NFD vẫn khớp).
   for (let i = 0; i < dong.length; i++) {
-    const { so, text } = dong[i];
-    const cuaSo = dong
-      .slice(i, i + 3)
-      .map((item) => item.text)
-      .join(" ");
+    const cua = dong.slice(i, i + 3);
+    const cuaSo = noiCau(cua);
     let loai = null;
-    if (KY_TU_AN.test(text)) loai = "Ký tự ẩn (không nhìn thấy khi đọc diff)";
-    else if (MAU_CO_DIEN.some((mau) => mau.test(text))) loai = "Câu ra lệnh cho AI";
-    else if (GOI_AI.test(cuaSo) && BAO_IM_LANG.test(cuaSo)) {
+    let moc = dong[i];
+    if (KY_TU_AN.test(dong[i].text)) loai = "Ký tự ẩn (không nhìn thấy khi đọc diff)";
+    else if (MAU_CO_DIEN.some((mau) => mau.test(cuaSo))) {
+      loai = "Câu ra lệnh cho AI";
+      // Báo dòng muộn nhất mà câu vẫn còn khớp: đó là dòng câu bắt đầu, không phải dòng đệm phía trước.
+      for (let j = cua.length - 1; j > 0; j--) {
+        const tuDay = noiCau(cua.slice(j));
+        if (MAU_CO_DIEN.some((mau) => mau.test(tuDay))) {
+          moc = cua[j];
+          break;
+        }
+      }
+    } else if (GOI_AI.test(cuaSo) && BAO_IM_LANG.test(cuaSo)) {
       loai = "Câu bảo AI bỏ qua";
       // Báo đúng dòng đầu tiên của cửa sổ có nhắc AI hoặc câu bảo bỏ qua, không phải dòng mở đầu.
-      const moc = dong.slice(i, i + 3).find((d) => GOI_AI.test(d.text) || BAO_IM_LANG.test(d.text));
-      if (moc) {
-        phatHien.push({ file, so: moc.so, loai, trich: moc.text.trim().slice(0, 120) });
-        i += 2;
-        continue;
-      }
+      moc = cua.find((d) => GOI_AI.test(d.text) || BAO_IM_LANG.test(d.text)) ?? moc;
     }
     if (!loai) continue;
-    phatHien.push({ file, so, loai, trich: text.trim().slice(0, 120) });
+    phatHien.push({ file, so: moc.so, loai, trich: moc.text.trim().slice(0, 120) });
     i += 2;
   }
 }
@@ -161,6 +208,20 @@ function cacDongThem(baseRef) {
     }
   }
   return [...theoFile].map(([ten, dong]) => ({ file: ten, dong }));
+}
+
+/** Tên mọi file PR thêm, sửa hoặc đổi tên (tên mới), kể cả file rỗng và đổi tên thuần. */
+function cacTenFile(baseRef) {
+  const ra = git([
+    "-c",
+    "core.quotepath=false",
+    "diff",
+    "--name-only",
+    "-z",
+    "--diff-filter=ACMR",
+    `${baseRef}...HEAD`,
+  ]);
+  return ra.split("\0").filter(Boolean);
 }
 
 /** Commit message của các commit PR thêm vào (không tính commit merge). */
