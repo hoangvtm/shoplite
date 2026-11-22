@@ -126,6 +126,10 @@ giảm 90.000 ₫, miễn phí giao hàng, tổng 810.000 ₫). Mã không hợp
 | ------------- | --------------------- | --------------------------- |
 | `ORDERS_FILE` | `storage/orders.json` | Đường dẫn file lưu đơn hàng |
 
+## Kiểm tra PR
+
+Mỗi PR chạy 4 job CI (`lint`, `unit`, `e2e`, `bao-mat`) và được AI review theo `.github/review-checklist.md`.
+
 ## Giấy phép
 
 [MIT](./LICENSE)
