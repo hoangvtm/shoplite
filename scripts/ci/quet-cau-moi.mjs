@@ -62,14 +62,10 @@ const KY_TU_AN = new RegExp(
   "u",
 );
 
-// Dòng trailer do công cụ thêm vào (Co-Authored-By: Claude ...) không phải lời viết cho AI; chỉ bỏ
-// khi dòng đó không chứa câu mồi nào, nên giấu câu mồi sau tiền tố trailer vẫn bị bắt.
-const TRAILER = /^\s*(?:Co-Authored-By|Signed-off-by):/i;
-const laTrailerSach = (text) =>
-  TRAILER.test(text) &&
-  !BAO_IM_LANG.test(text) &&
-  !MAU_CO_DIEN.some((mau) => mau.test(text.normalize("NFC"))) &&
-  !KY_TU_AN.test(text);
+// Dòng trailer chuẩn của Claude Code ("Co-Authored-By: Claude ... <...@anthropic.com>") có tên AI
+// một cách hợp lệ nên không tính là "nhắc AI". Dòng đó vẫn nằm trong cửa sổ và vẫn bị thử mọi mẫu
+// khác (câu ra lệnh, bảo bỏ qua, ký tự ẩn), nên giấu câu mồi vào trailer vẫn bị bắt.
+const TRAILER_CLAUDE = /^\s*Co-Authored-By:\s*Claude[A-Za-z0-9 .-]*<[^<>\s]+@anthropic\.com>\s*$/i;
 
 const args = process.argv.slice(2);
 const lay = (ten) => (args.includes(ten) ? args[args.indexOf(ten) + 1] : undefined);
@@ -84,21 +80,28 @@ if (!base) {
 const phatHien = [];
 const fileChiDan = new Set();
 
+const daQuet = new Set();
 const dongTheoFile = new Map(cacDongThem(base).map(({ file, dong }) => [file, dong]));
 for (const file of cacTenFile(base)) {
   // Tên file cũng là chỗ giấu câu mồi (AI đọc tên file trong diff); file đổi tên thuần hoặc file
   // rỗng không có dòng thêm vào nên phải lấy tên từ danh sách file, không từ tiêu đề `+++`.
   quet(`(tên file) ${file}`, [{ so: 1, text: file.replace(/[-_./]+/g, " ") }]);
+  daQuet.add(file);
   if (FILE_CHI_DAN.some((mau) => mau.test(file))) {
     fileChiDan.add(file);
     continue;
   }
   quet(file, dongTheoFile.get(file) ?? []);
 }
+// Dòng thêm vào của file mà tên không khớp danh sách tên file (đọc tiêu đề diff sai): quét luôn,
+// kể cả file chỉ dẫn, để không bao giờ bỏ sót im lặng.
+for (const [file, dong] of dongTheoFile) {
+  if (!daQuet.has(file)) quet(file, dong);
+}
 for (const { ten, noiDung } of cacCommit(base)) {
   quet(
     ten,
-    tachDong(noiDung).filter((d) => !laTrailerSach(d.text)),
+    tachDong(noiDung).map((d) => ({ ...d, tinCay: TRAILER_CLAUDE.test(d.text) })),
   );
 }
 for (const [ten, noiDung] of [
@@ -149,6 +152,8 @@ function quet(file, dong) {
   for (let i = 0; i < dong.length; i++) {
     const cua = dong.slice(i, i + 3);
     const cuaSo = noiCau(cua);
+    // Chỉ riêng việc "có nhắc AI" bỏ qua dòng trailer tin cậy
+    const cuaGoiAI = noiCau(cua.filter((d) => !d.tinCay));
     let loai = null;
     let moc = dong[i];
     if (KY_TU_AN.test(dong[i].text)) loai = "Ký tự ẩn (không nhìn thấy khi đọc diff)";
@@ -162,10 +167,10 @@ function quet(file, dong) {
           break;
         }
       }
-    } else if (GOI_AI.test(cuaSo) && BAO_IM_LANG.test(cuaSo)) {
+    } else if (GOI_AI.test(cuaGoiAI) && BAO_IM_LANG.test(cuaSo)) {
       loai = "Câu bảo AI bỏ qua";
       // Báo đúng dòng đầu tiên của cửa sổ có nhắc AI hoặc câu bảo bỏ qua, không phải dòng mở đầu.
-      moc = cua.find((d) => GOI_AI.test(d.text) || BAO_IM_LANG.test(d.text)) ?? moc;
+      moc = cua.find((d) => (!d.tinCay && GOI_AI.test(d.text)) || BAO_IM_LANG.test(d.text)) ?? moc;
     }
     if (!loai) continue;
     phatHien.push({ file, so: moc.so, loai, trich: moc.text.trim().slice(0, 120) });
@@ -197,7 +202,7 @@ function cacDongThem(baseRef) {
       trongHunk = false;
       file = null;
     } else if (!trongHunk && line.startsWith("+++ ")) {
-      file = line === "+++ /dev/null" ? null : line.slice(6);
+      file = line === "+++ /dev/null" ? null : docDuongDan(line.slice(4));
       if (file && !theoFile.has(file)) theoFile.set(file, []);
     } else if (line.startsWith("@@")) {
       trongHunk = true;
@@ -210,7 +215,34 @@ function cacDongThem(baseRef) {
   return [...theoFile].map(([ten, dong]) => ({ file: ten, dong }));
 }
 
-/** Tên mọi file PR thêm, sửa hoặc đổi tên (tên mới), kể cả file rỗng và đổi tên thuần. */
+/**
+ * Đường dẫn ở tiêu đề `+++ b/<path>`: git thêm TAB cuối khi tên có dấu cách và bọc ngoặc kép kiểu C
+ * (\\, \", \t, \n, \ooo) khi tên có ký tự đặc biệt; phải bóc cả hai để khớp với `--name-only -z`.
+ */
+function docDuongDan(phan) {
+  let ten = phan.replace(/\t.*$/, "");
+  if (ten.startsWith('"') && ten.endsWith('"') && ten.length >= 2) {
+    const byte = [];
+    const thoat = { n: 10, t: 9, r: 13, a: 7, b: 8, f: 12, v: 11 };
+    const raw = ten.slice(1, -1);
+    for (let i = 0; i < raw.length; i++) {
+      if (raw[i] !== "\\") {
+        byte.push(...Buffer.from(raw[i]));
+        continue;
+      }
+      const tiep = raw[++i];
+      const bat = raw.slice(i, i + 3);
+      if (/^[0-7]{3}$/.test(bat)) {
+        byte.push(parseInt(bat, 8));
+        i += 2;
+      } else byte.push(thoat[tiep] ?? tiep.charCodeAt(0));
+    }
+    ten = Buffer.from(byte).toString("utf8");
+  }
+  return ten.replace(/^b\//, "");
+}
+
+/** Tên mọi file PR thêm, sửa hoặc đổi tên (tên mới) hoặc đổi kiểu, kể cả file rỗng và đổi tên thuần. */
 function cacTenFile(baseRef) {
   const ra = git([
     "-c",
@@ -218,7 +250,7 @@ function cacTenFile(baseRef) {
     "diff",
     "--name-only",
     "-z",
-    "--diff-filter=ACMR",
+    "--diff-filter=ACMRT",
     `${baseRef}...HEAD`,
   ]);
   return ra.split("\0").filter(Boolean);
