@@ -23,7 +23,7 @@ const FILE_CHI_DAN = [
 
 const GOI_AI = /\bAI\b|\b(?:claude|chatgpt|gpt|copilot|gemini|llm|bot|reviewer|model)\b/i;
 const BAO_IM_LANG =
-  /(?:không cần|đừng|khỏi|không được|do not|don'?t|no need to)\s+(?:báo|report|flag|review|kiểm|comment|nhắc|cảnh báo|mention)|bỏ qua|\bignore\b|\bskip\b|\bapprove\b|\bLGTM\b|duyệt (?:luôn|giúp|ngay)/i;
+  /(?:không cần|đừng|khỏi|không được|do not|don'?t|no need to)\s+(?:báo|report|flag|review|kiểm|comment|nhắc|cảnh báo|mention)|bỏ qua|\bignore\b|\bskip\b|\bapprove\b|\bLGTM\b|duyệt (?:luôn|giúp|ngay)|đã (?:được )?duyệt/i;
 const MAU_CO_DIEN = [
   /ignore (?:all |any )?(?:the )?(?:previous|prior|above|earlier) (?:instructions|prompts|rules)/i,
   /bỏ qua (?:mọi|tất cả|các) (?:chỉ dẫn|hướng dẫn|yêu cầu|quy tắc)/i,
