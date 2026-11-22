@@ -1,0 +1,51 @@
+1. Build image
+
+cd "/Users/max/Data/AI Teaching/DayOneLab/lab-guides/module-7-cicd-ai/reference/runner"
+docker build -t shoplite-runner .
+
+- Lần đầu mất vài phút vì phải tải Node, gh, Claude Code 2.1.309 và Bun cùng các gói của action (khoảng 700 MB).
+- Kiểm tra sau khi build:
+docker run --rm shoplite-runner bash -lc 'node -v; gh --version | head -1; ~/.local/bin/claude --version; ~/.bun/bin/bun -v'
+  Kết quả mong đợi: Node 22.x, gh, Claude 2.1.309, Bun 1.3.14.
+
+2. Lấy registration token
+
+Image này chỉ có runner, chưa tự đăng ký với repo. Bạn cần một token, hết hạn sau 1 giờ.
+
+- Cách 1, trên web: repo → Settings → Actions → Runners → New self-hosted runner. Chọn Linux/ARM64 rồi copy token trong lệnh ./config.sh --url ... --token XXXX.
+- Cách 2, bằng CLI:
+gh api -X POST repos/<OWNER>/<REPO>/actions/runners/registration-token --jq .token
+
+3. Đăng ký và chạy runner
+
+docker run -d --name shoplite-runner --restart unless-stopped shoplite-runner bash -c '
+  ./config.sh --unattended \
+    --url https://github.com/<OWNER>/<REPO> \
+    --token <TOKEN> \
+    --name shoplite-runner \
+    --labels shoplite \
+    --replace &&
+  ./run.sh'
+
+- Thay <OWNER>/<REPO> và <TOKEN> bằng giá trị của bạn.
+- Giá trị --labels phải khớp với runs-on: của job AI review trong ai-review.yml. Ví dụ runs-on: [self-hosted, shoplite]. Tôi chưa mở được file workflow nên chưa kiểm tra được chỗ này. Nếu workflow dùng nhãn khác thì đổi --labels cho khớp.
+- Xem log:
+docker logs -f shoplite-runner
+  Dòng Listening for Jobs nghĩa là runner đã sẵn sàng. Trên GitHub, runner hiện trạng thái Idle (màu xanh).
+
+4. Chạy thử
+
+Mở một PR để workflow kích hoạt. Job ai-review sẽ chạy trong container này.
+
+- Secret ANTHROPIC_API_KEY (hoặc OAuth token) đặt ở repo Settings → Secrets and variables → Actions. Không cần đưa vào container.
+- Dockerfile đã cài sẵn Claude Code, Bun và các gói của action. Trong ai-review.yml, bạn phải trỏ path_to_claude_code_executable vào /home/runner/.local/bin/claude, nếu không action sẽ tải lại 280 MB mỗi lần chạy.
+
+Lưu ý
+
+- Dừng và xóa runner:
+docker rm -f shoplite-runner
+  Nên gỡ runner khỏi GitHub trước (Settings → Runners → Remove), nếu không nó sẽ nằm ở trạng thái Offline.
+- Phiên bản 2.338.2 của runner và các giá trị ghim khác phải khớp với ai-review.yml (action v1.0.259). Nếu bạn nâng version action thì phải sửa các ARG tương ứng.
+- Container mất khi bị xóa, và cấu hình đăng ký mất theo. Khi tạo lại, bạn cần lấy token mới (--replace sẽ ghi đè runner cũ trùng tên).
+
+Tôi chưa chạy docker build trên máy bạn. Tôi cũng chưa đọc ai-review.yml, nên nhãn runs-on và đường dẫn executable ở trên là suy ra từ Dockerfile, bạn nên đối chiếu lại.
