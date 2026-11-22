@@ -18,7 +18,15 @@ function getSteps(job) {
         { name: "format", cmd: "npm", args: ["run", "format:check"] },
       ];
     case "unit":
-      return [{ name: "vitest", cmd: "npm", args: ["run", "test"] }];
+      return [
+        { name: "vitest", cmd: "npm", args: ["run", "test"] },
+        // Test của chính các công cụ CI (vitest chỉ chạy src/**)
+        {
+          name: "test-cong-cu-ci",
+          cmd: "node",
+          args: ["--test", "scripts/ci/quet-cau-moi.test.mjs"],
+        },
+      ];
     case "e2e":
       return [{ name: "playwright", cmd: "npm", args: ["run", "test:e2e"] }];
     case "bao-mat": {
@@ -42,6 +50,13 @@ function getSteps(job) {
           input: prText,
         });
       }
+      // [AT-1] Câu viết cho AI trong phần PR thêm vào (diff, tiêu đề, mô tả): kiểm tất định, đỏ dù
+      // AI review có bị lừa hay không. Tiêu đề và mô tả PR vào qua env PR_TITLE, PR_BODY (đã kế thừa).
+      steps.push({
+        name: "quet-cau-moi",
+        cmd: "node",
+        args: ["scripts/ci/quet-cau-moi.mjs"],
+      });
       // Mật khẩu quản trị không được lọt vào bundle hay HTML prerender (xem AGENTS.md)
       steps.push({ name: "verify-build", cmd: "npm", args: ["run", "verify:build"] });
       return steps;
