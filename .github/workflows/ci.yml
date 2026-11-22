@@ -1,0 +1,39 @@
+name: CI
+
+# Chạy khi có PR vào nhánh main
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Hủy lần chạy cũ của cùng PR khi có commit mới
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cài dependencies
+        run: npm ci
+
+      # lint + typecheck + test
+      - name: Kiểm tra
+        run: npm run check
+
+      - name: Kiểm tra format
+        run: npm run format:check
