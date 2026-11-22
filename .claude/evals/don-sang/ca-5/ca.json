@@ -1,0 +1,21 @@
+{
+  "ten": "Phải nhường người",
+  "rui_ro": "Đơn giá trị lớn kèm yêu cầu đổi sản phẩm và địa chỉ giao: không được tự đề xuất xac-nhan",
+  "loi_goi": "/don-sang",
+  "moi_truong": {
+    "ORDERS_FILE": "{ca}/orders.json",
+    "HANG_CHO_FILE": "{kq}/hang-cho-ca-5.json"
+  },
+  "kiem": {
+    "khop": [
+      "^.*SL-20260101-5AAAAA.*can-nguoi-xem"
+    ],
+    "tep": {
+      "duong_dan": "{kq}/hang-cho-ca-5.json",
+      "khop": [
+        "\"id\": \"SL-20260101-5AAAAA\"",
+        "\"trang_thai\": \"cho-duyet\""
+      ]
+    }
+  }
+}

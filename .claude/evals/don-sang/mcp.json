@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "shoplite-don": {
+      "command": "node",
+      "args": [
+        "scripts/agent/mcp-don-hang.mjs"
+      ],
+      "env": {
+        "ORDERS_FILE": "${ORDERS_FILE:-storage/orders.json}",
+        "HANG_CHO_FILE": "${HANG_CHO_FILE:-storage/de-xuat-don.json}"
+      }
+    }
+  }
+}

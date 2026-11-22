@@ -3,6 +3,10 @@
     "playwright-test": {
       "command": "npx",
       "args": ["playwright", "run-test-mcp-server"]
+    },
+    "shoplite-don": {
+      "command": "node",
+      "args": ["scripts/agent/mcp-don-hang.mjs"]
     }
   }
 }

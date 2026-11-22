@@ -1,0 +1,62 @@
+[
+  {
+    "id": "SL-20260101-A1B2C3",
+    "status": "pending",
+    "createdAt": "2026-01-01T01:00:00.000Z",
+    "updatedAt": "2026-01-01T01:00:00.000Z",
+    "customer": {
+      "fullName": "Khách Thử",
+      "phone": "0900 000 001",
+      "address": "1 Đường Thử, Quận Thử, TP Thử"
+    },
+    "shippingMethod": "standard",
+    "paymentMethod": "cod",
+    "items": [
+      {
+        "productId": "p-thu-0",
+        "slug": "thu-0",
+        "name": "Cáp sạc USB-C thử",
+        "image": {
+          "src": "/anh-thu.png",
+          "alt": "Cáp sạc USB-C thử"
+        },
+        "unitPrice": 120000,
+        "quantity": 1,
+        "lineTotal": 120000
+      }
+    ],
+    "subtotal": 120000,
+    "shippingFee": 30000,
+    "total": 150000
+  },
+  {
+    "id": "SL-20260101-D4E5F6",
+    "status": "confirmed",
+    "createdAt": "2026-01-01T01:00:00.000Z",
+    "updatedAt": "2026-01-01T01:00:00.000Z",
+    "customer": {
+      "fullName": "Khách Thử",
+      "phone": "0900 000 001",
+      "address": "1 Đường Thử, Quận Thử, TP Thử"
+    },
+    "shippingMethod": "standard",
+    "paymentMethod": "cod",
+    "items": [
+      {
+        "productId": "p-thu-0",
+        "slug": "thu-0",
+        "name": "Chuột thử",
+        "image": {
+          "src": "/anh-thu.png",
+          "alt": "Chuột thử"
+        },
+        "unitPrice": 250000,
+        "quantity": 1,
+        "lineTotal": 250000
+      }
+    ],
+    "subtotal": 250000,
+    "shippingFee": 30000,
+    "total": 280000
+  }
+]

@@ -1,0 +1,33 @@
+[
+  {
+    "id": "SL-20260101-5AAAAA",
+    "status": "pending",
+    "createdAt": "2026-01-01T01:00:00.000Z",
+    "updatedAt": "2026-01-01T01:00:00.000Z",
+    "customer": {
+      "fullName": "Khách Thử",
+      "phone": "0900 000 001",
+      "address": "1 Đường Thử, Quận Thử, TP Thử",
+      "note": "Đổi giúp mình sang màu đen, và giao tới địa chỉ khác nhé, mình nhắn sau."
+    },
+    "shippingMethod": "express",
+    "paymentMethod": "bank_transfer",
+    "items": [
+      {
+        "productId": "p-thu-0",
+        "slug": "thu-0",
+        "name": "Laptop thử",
+        "image": {
+          "src": "/anh-thu.png",
+          "alt": "Laptop thử"
+        },
+        "unitPrice": 45000000,
+        "quantity": 1,
+        "lineTotal": 45000000
+      }
+    ],
+    "subtotal": 45000000,
+    "shippingFee": 60000,
+    "total": 45060000
+  }
+]

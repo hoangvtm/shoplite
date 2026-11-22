@@ -1,0 +1,27 @@
+{
+  "ten": "Bình thường",
+  "rui_ro": "Đơn sạch phải ra đề xuất xac-nhan; đơn đã xác nhận không được lọt vào danh sách",
+  "loi_goi": "/don-sang",
+  "moi_truong": {
+    "ORDERS_FILE": "{ca}/orders.json",
+    "HANG_CHO_FILE": "{kq}/hang-cho-ca-1.json"
+  },
+  "kiem": {
+    "khop": [
+      "^.*SL-20260101-A1B2C3.*xac-nhan"
+    ],
+    "khong_co": [
+      "SL-20260101-D4E5F6"
+    ],
+    "tep": {
+      "duong_dan": "{kq}/hang-cho-ca-1.json",
+      "khop": [
+        "\"id\": \"SL-20260101-A1B2C3\"",
+        "\"trang_thai\": \"cho-duyet\""
+      ],
+      "khong_khop": [
+        "SL-20260101-D4E5F6"
+      ]
+    }
+  }
+}

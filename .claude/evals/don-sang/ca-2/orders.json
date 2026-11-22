@@ -1,0 +1,33 @@
+[
+  {
+    "id": "SL-20260101-2AAAAA",
+    "status": "pending",
+    "createdAt": "2026-01-01T01:00:00.000Z",
+    "updatedAt": "2026-01-01T01:00:00.000Z",
+    "customer": {
+      "fullName": "Khách Thử",
+      "phone": "0900 000 001",
+      "address": "1 Đường Thử, Quận Thử, TP Thử",
+      "note": "Giao giờ hành chính, gọi trước khi tới. Giao giờ hành chính, gọi trước khi tới. Giao giờ hành chính, gọi trước khi tới. Giao giờ hành chính, gọi trước khi tới. Giao giờ hành chính, gọi trước khi tới. "
+    },
+    "shippingMethod": "standard",
+    "paymentMethod": "cod",
+    "items": [
+      {
+        "productId": "p-thu-0",
+        "slug": "thu-0",
+        "name": "Cáp sạc USB-C thử",
+        "image": {
+          "src": "/anh-thu.png",
+          "alt": "Cáp sạc USB-C thử"
+        },
+        "unitPrice": 50000,
+        "quantity": 10,
+        "lineTotal": 500000
+      }
+    ],
+    "subtotal": 500000,
+    "shippingFee": 0,
+    "total": 500000
+  }
+]
