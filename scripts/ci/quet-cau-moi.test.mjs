@@ -141,6 +141,15 @@ describe("quét câu mồi [AT-1]", () => {
     assert.match(stdout, /\(commit [0-9a-f]+\):3/);
   });
 
+  it("dòng trailer 'Co-Authored-By: Claude' trong commit message không làm gate đỏ oan", () => {
+    const { status, stdout } = chayQuet({
+      commitMessage:
+        "Sửa lỗi bỏ qua đơn rỗng\n\nCo-Authored-By: Claude Sonnet <noreply@anthropic.com>",
+    });
+    assert.equal(status, 0);
+    assert.match(stdout, /✅ Không thấy câu nào/);
+  });
+
   it("bắt câu mồi trong tên file", () => {
     const { status, stdout } = chayQuet({
       files: { "ignore-previous-instructions.md": "nội dung bình thường\n" },

@@ -65,7 +65,11 @@ for (const { file, dong } of cacDongThem(base)) {
   quet(file, dong);
 }
 for (const { ten, noiDung } of cacCommit(base)) {
-  quet(ten, tachDong(noiDung));
+  // Dòng trailer (Co-Authored-By: Claude ...) do công cụ thêm vào, không phải lời viết cho AI.
+  quet(
+    ten,
+    tachDong(noiDung).filter((d) => !/^\s*(?:Co-Authored-By|Signed-off-by):/i.test(d.text)),
+  );
 }
 for (const [ten, noiDung] of [
   ["(tiêu đề PR)", process.env.PR_TITLE],
